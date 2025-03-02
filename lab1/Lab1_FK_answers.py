@@ -30,9 +30,35 @@ def part1_calculate_T_pose(bvh_file_path):
     Tips:
         joint_name顺序应该和bvh一致
     """
-    joint_name = None
-    joint_parent = None
-    joint_offset = None
+    joint_name = []
+    joint_parent = []
+    joint_offset = []
+
+    with open(bvh_file_path, 'r') as f:
+        lines = f.readlines()
+        stack = []
+        parent_index = -1
+        for line in lines:
+            if 'ROOT' in line or 'JOINT' in line:
+                name = line.split()[1]
+                joint_name.append(name)
+                joint_parent.append(parent_index)
+                parent_index = len(joint_name) - 1
+                stack.append(parent_index)
+            elif 'End Site' in line:
+                joint_name.append(f"{joint_name[parent_index]}_end")
+                joint_parent.append(parent_index)
+                parent_index = len(joint_name) - 1
+                stack.append(parent_index)
+            elif 'OFFSET' in line:
+                offset = np.array([float(x) for x in line.split()[1:]])
+                joint_offset.append(offset)
+            elif '}' in line:
+                stack.pop()
+                if stack:
+                    parent_index = stack[-1]
+
+    joint_offset = np.array(joint_offset)
     return joint_name, joint_parent, joint_offset
 
 
