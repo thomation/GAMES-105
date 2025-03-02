@@ -96,6 +96,16 @@ def part2_forward_kinematics(joint_name, joint_parent, joint_offset, motion_data
             motion_start_index += 3
     return joint_positions, joint_orientations
 
+def compute_motion_data_index(joint_names, joint_name):
+    index = 3
+    for i in range(len(joint_names)):
+        if joint_names[i] == joint_name:
+            return index 
+        elif(not joint_names[i].endswith("_end")):
+            index += 3
+    # raise exception
+    raise ValueError(f"Joint name {joint_name} not found in joint names list")
+
 
 def part3_retarget_func(T_pose_bvh_path, A_pose_bvh_path):
     """
@@ -107,5 +117,25 @@ def part3_retarget_func(T_pose_bvh_path, A_pose_bvh_path):
         两个bvh的joint name顺序可能不一致哦(
         as_euler时也需要大写的XYZ
     """
-    motion_data = None
-    return motion_data
+    joint_name_T, joint_parent_T, joint_offset_T = part1_calculate_T_pose(T_pose_bvh_path)
+    joint_name_A, joint_parent_A, joint_offset_A = part1_calculate_T_pose(A_pose_bvh_path)
+
+    motion_data_A = load_motion_data(A_pose_bvh_path)
+    motion_data_T = np.zeros_like(motion_data_A)
+    
+    joint_map = {name: i for i, name in enumerate(joint_name_A)}
+    
+    for frame_id in range(motion_data_A.shape[0]):
+        joint_positions_A, joint_orientations_A = part2_forward_kinematics(joint_name_A, joint_parent_A, joint_offset_A, motion_data_A, frame_id)
+        
+        for i, name in enumerate(joint_name_T):
+            if name in joint_map:
+                idx_A = joint_map[name]
+                if joint_parent_T[i] == -1:
+                    motion_data_T[frame_id, :6] = motion_data_A[frame_id, :6]
+                elif(not joint_name_T[i].endswith("_end")):
+                    to_start_index = compute_motion_data_index(joint_name_T, joint_name_T[i])
+                    from_start_index = compute_motion_data_index(joint_name_A, joint_name_A[idx_A])
+                    motion_data_T[frame_id, to_start_index: 3 + to_start_index] = motion_data_A[frame_id, from_start_index : 3 + from_start_index]
+    
+    return motion_data_T
