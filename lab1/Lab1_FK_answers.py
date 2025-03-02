@@ -74,8 +74,26 @@ def part2_forward_kinematics(joint_name, joint_parent, joint_offset, motion_data
         1. joint_orientations的四元数顺序为(x, y, z, w)
         2. from_euler时注意使用大写的XYZ
     """
-    joint_positions = None
-    joint_orientations = None
+    joint_positions = np.zeros((len(joint_name), 3))
+    joint_orientations = np.zeros((len(joint_name), 4))
+    joint_orientations[:, 3] = 1  # Initialize w component of quaternion to 1
+    # print(f"joint_name size {len(joint_name)}")
+    # print(f"motion data size {len(motion_data[frame_id])}")
+    motion_start_index = 3 
+    for i in range(len(joint_name)):
+        # print(f"handle joint {i} {joint_name[i]} parent is {joint_parent[i]}")
+        if joint_parent[i] == -1:
+            joint_positions[i] = motion_data[frame_id, :3]
+            joint_orientations[i] = R.from_euler('XYZ', motion_data[frame_id, motion_start_index:motion_start_index + 3], degrees=True).as_quat()
+            motion_start_index += 3
+        elif(not joint_name[i].endswith("_end")):
+            parent_pos = joint_positions[joint_parent[i]]
+            parent_ori = R.from_quat(joint_orientations[joint_parent[i]])
+            local_pos = joint_offset[i]
+            local_ori = R.from_euler('XYZ', motion_data[frame_id, motion_start_index:motion_start_index + 3], degrees=True)
+            joint_positions[i] = parent_pos + parent_ori.apply(local_pos)
+            joint_orientations[i] = (parent_ori * local_ori).as_quat()
+            motion_start_index += 3
     return joint_positions, joint_orientations
 
 
