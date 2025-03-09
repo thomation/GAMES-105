@@ -137,5 +137,9 @@ def part3_retarget_func(T_pose_bvh_path, A_pose_bvh_path):
                     to_start_index = compute_motion_data_index(joint_name_T, joint_name_T[i])
                     from_start_index = compute_motion_data_index(joint_name_A, joint_name_A[idx_A])
                     motion_data_T[frame_id, to_start_index: 3 + to_start_index] = motion_data_A[frame_id, from_start_index : 3 + from_start_index]
+                    if name == "lShoulder":
+                        motion_data_T[frame_id, to_start_index + 2] -= 45
+                    if name == "rShoulder":
+                        motion_data_T[frame_id, to_start_index + 2] += 45
     
     return motion_data_T
